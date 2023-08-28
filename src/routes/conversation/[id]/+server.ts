@@ -19,8 +19,6 @@ import { z } from "zod";
 import { AwsClient } from "aws4fetch";
 import OpenAI from "openai";
 
-const openai = new OpenAI();
-
 export async function POST({ request, fetch, locals, params }) {
 	const id = z.string().parse(params.id);
 	const convId = new ObjectId(id);
@@ -109,38 +107,6 @@ export async function POST({ request, fetch, locals, params }) {
 		locals: locals,
 	});
 
-	async function saveOpenAIMessage(stream: ReadableStream<OpenAI.Completions.Completion>) {
-		let content = "";
-		for await (const chuck of streamToAsyncIterable<OpenAI.Completions.Completion>(stream)) {
-			content = content + chuck.choices[0].text;
-		}
-		messages.push({
-			from: "assistant",
-			content,
-			webSearchId: web_search_id,
-			id: (responseId as Message["id"]) || crypto.randomUUID(),
-			createdAt: new Date(),
-			updatedAt: new Date(),
-		});
-
-		await collections.messageEvents.insertOne({
-			userId: userId,
-			createdAt: new Date(),
-		});
-
-		await collections.conversations.updateOne(
-			{
-				_id: convId,
-			},
-			{
-				$set: {
-					messages,
-					updatedAt: new Date(),
-				},
-			}
-		);
-	}
-
 	const randomEndpoint = modelEndpoint(model);
 
 	const abortController = new AbortController();
@@ -169,6 +135,7 @@ export async function POST({ request, fetch, locals, params }) {
 		});
 	} else if (randomEndpoint.host === "openai-compatible") {
 		const modelId = model.id;
+		const openai = new OpenAI();
 		const completion = await openai.completions.create(
 			{
 				model: modelId,
@@ -194,12 +161,7 @@ export async function POST({ request, fetch, locals, params }) {
 				abortController.abort();
 			},
 		});
-		const [stream1, stream2] = readableStream.tee();
-
-		saveOpenAIMessage(stream2).catch(console.error);
-		return new Response(stream1, {
-			// seems not possible to get the headers from the original response
-			headers: {},
+		resp = new Response(readableStream, {
 			status: 200,
 			statusText: "OK",
 		});
