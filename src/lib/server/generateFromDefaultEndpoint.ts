@@ -4,6 +4,7 @@ import { trimSuffix } from "$lib/utils/trimSuffix";
 import { trimPrefix } from "$lib/utils/trimPrefix";
 import { PUBLIC_SEP_TOKEN } from "$lib/constants/publicSepToken";
 import { AwsClient } from "aws4fetch";
+import OpenAI from "openai";
 
 interface Parameters {
 	temperature: number;
@@ -49,16 +50,36 @@ export async function generateFromDefaultEndpoint(
 			},
 		});
 	} else if (randomEndpoint.host === "openai-compatible") {
-		resp = await fetch(randomEndpoint.url, {
-			headers: {
-				"Content-Type": "application/json",
-			},
-			method: "POST",
-			body: JSON.stringify({
-				...newParameters,
+		const modelId = defaultModel.id;
+		const openai = new OpenAI();
+		const completion = await openai.completions.create(
+			{
+				model: modelId,
 				prompt,
-			}),
-			signal: abortController.signal,
+				stream: true,
+				max_tokens: newParameters?.max_new_tokens,
+				stop: newParameters?.stop,
+				temperature: newParameters?.temperature,
+			},
+			{ signal: abortController.signal }
+		);
+		const readableStream = new ReadableStream<OpenAI.Completions.Completion>({
+			async start(controller) {
+				for await (const chunk of completion) {
+					if (abortController.signal.aborted) {
+						break;
+					}
+					controller.enqueue(chunk);
+				}
+				controller.close();
+			},
+			cancel() {
+				abortController.abort();
+			},
+		});
+		resp = new Response(readableStream, {
+			status: 200,
+			statusText: "OK",
 		});
 	} else {
 		resp = await fetch(randomEndpoint.url, {
