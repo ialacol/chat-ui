@@ -134,8 +134,11 @@ export async function POST({ request, fetch, locals, params }) {
 			},
 		});
 	} else if (randomEndpoint.host === "openai-compatible") {
-		const modelId = model.id;
-		const openai = new OpenAI();
+		const modelId = model.id ?? model.name;
+		const openai = new OpenAI({
+			apiKey: randomEndpoint.apiKey ?? "sk-",
+			baseURL: randomEndpoint.url,
+		});
 		const completion = await openai.completions.create(
 			{
 				model: modelId,
@@ -147,24 +150,31 @@ export async function POST({ request, fetch, locals, params }) {
 			},
 			{ signal: abortController.signal }
 		);
-		const readableStream = new ReadableStream<OpenAI.Completions.Completion>({
-			async start(controller) {
-				for await (const chunk of completion) {
-					if (abortController.signal.aborted) {
-						break;
+		return new Response(
+			new ReadableStream<ArrayBuffer>({
+				async start(controller) {
+					for await (const chunk of completion) {
+						console.log({ chunk: chunk.choices[0]?.text });
+						if (abortController.signal.aborted) {
+							break;
+						}
+						const blob = new Blob([chunk.choices[0]?.text], { type: "text/plain; charset=utf-8" });
+						controller.enqueue(await blob.arrayBuffer());
 					}
-					controller.enqueue(chunk);
-				}
-				controller.close();
-			},
-			cancel() {
-				abortController.abort();
-			},
-		});
-		resp = new Response(readableStream, {
-			status: 200,
-			statusText: "OK",
-		});
+					controller.close();
+				},
+				cancel() {
+					abortController.abort();
+				},
+			}),
+			{
+				headers: {
+					"Content-Type": "text/event-stream",
+				},
+				status: 200,
+				statusText: "OK",
+			}
+		);
 	} else {
 		resp = await fetch(randomEndpoint.url, {
 			headers: {
@@ -232,7 +242,7 @@ export async function POST({ request, fetch, locals, params }) {
 		);
 	}
 
-	saveMessage().catch(console.error);
+	// saveMessage().catch(console.error);
 	// Todo: maybe we should wait for the message to be saved before ending the response - in case of errors
 	return new Response(stream1, {
 		headers: Object.fromEntries(resp.headers.entries()),
@@ -266,6 +276,7 @@ async function parseGeneratedText(
 ): Promise<string> {
 	const inputs: Uint8Array[] = [];
 	for await (const input of streamToAsyncIterable<Uint8Array>(stream)) {
+		console.log({ input });
 		inputs.push(input);
 
 		const date = abortedGenerations.get(conversationId.toString());

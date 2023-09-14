@@ -12,6 +12,7 @@ type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 const openAICompatibleEndpoint = z.object({
 	host: z.literal("openai-compatible"),
 	url: z.string().url(),
+	apiKey: z.string().optional(),
 });
 
 const sagemakerEndpoint = z.object({

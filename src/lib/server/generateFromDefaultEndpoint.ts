@@ -50,8 +50,11 @@ export async function generateFromDefaultEndpoint(
 			},
 		});
 	} else if (randomEndpoint.host === "openai-compatible") {
-		const modelId = defaultModel.id;
-		const openai = new OpenAI();
+		const modelId = defaultModel.id ?? defaultModel.name;
+		const openai = new OpenAI({
+			apiKey: randomEndpoint.apiKey ?? "sk-",
+			baseURL: randomEndpoint.url,
+		});
 		const completion = await openai.completions.create(
 			{
 				model: modelId,
@@ -63,13 +66,13 @@ export async function generateFromDefaultEndpoint(
 			},
 			{ signal: abortController.signal }
 		);
-		const readableStream = new ReadableStream<OpenAI.Completions.Completion>({
+		const readableStream = new ReadableStream<string>({
 			async start(controller) {
 				for await (const chunk of completion) {
 					if (abortController.signal.aborted) {
 						break;
 					}
-					controller.enqueue(chunk);
+					controller.enqueue(chunk.choices[0].text);
 				}
 				controller.close();
 			},
@@ -78,6 +81,9 @@ export async function generateFromDefaultEndpoint(
 			},
 		});
 		resp = new Response(readableStream, {
+			headers: {
+				"Content-Type": "text/event-stream",
+			},
 			status: 200,
 			statusText: "OK",
 		});
