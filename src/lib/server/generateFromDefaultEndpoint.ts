@@ -1,4 +1,4 @@
-import { defaultModel } from "$lib/server/models";
+import { getDefaultModel } from "$lib/server/models";
 import { modelEndpoint } from "./modelEndpoint";
 import { trimSuffix } from "$lib/utils/trimSuffix";
 import { trimPrefix } from "$lib/utils/trimPrefix";
@@ -16,6 +16,7 @@ export async function generateFromDefaultEndpoint(
 	prompt: string,
 	parameters?: Partial<Parameters>
 ): Promise<string> {
+	const defaultModel = getDefaultModel();
 	const newParameters = {
 		...defaultModel.parameters,
 		...parameters,

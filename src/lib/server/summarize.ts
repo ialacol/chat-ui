@@ -1,10 +1,10 @@
 import { buildPrompt } from "$lib/buildPrompt";
 import { generateFromDefaultEndpoint } from "$lib/server/generateFromDefaultEndpoint";
-import { defaultModel } from "$lib/server/models";
+import { getDefaultModel } from "$lib/server/models";
 
 export async function summarize(prompt: string) {
 	const userPrompt = `Please summarize the following message: \n` + prompt;
-
+	const defaultModel = getDefaultModel();
 	const summaryPrompt = await buildPrompt({
 		messages: [{ from: "user", content: userPrompt }],
 		preprompt:

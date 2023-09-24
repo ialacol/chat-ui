@@ -126,6 +126,7 @@ You can customize the parameters passed to the model or even use a new model by 
 MODELS=`[
   {
     "name": "OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5",
+    "defaultModel": "true",
     "datasetName": "OpenAssistant/oasst1",
     "description": "A good alternative to ChatGPT",
     "websiteUrl": "https://open-assistant.io",
@@ -172,6 +173,7 @@ This makes Chat UI works with [oobabooga](https://github.com/oobabooga/text-gene
 MODELS=`[
   {
     "name": "oobabooga",
+    "defaultModel": "true",
     "id": "oobabooga",
     "userMessageToken": "User:\n",
     "userMessageEndToken": "\n",
@@ -204,6 +206,7 @@ OPENAI_API_KEY=#your openai api key here
 MODELS=`[
   {
     "name": "GPT4",
+    "defaultModel": "true",
     "id": "gpt-4",
     "userMessageToken": "User:\n",
     "userMessageEndToken": "\n",
@@ -234,6 +237,7 @@ OPENAI_API_KEY=#your openai api key here
 MODELS=`[
   {
     "name": "GPT-3.5 Turbo",
+    "defaultModel": "true",
     "id": "gpt-3.5-turbo",
     "userMessageToken": "User:\n",
     "userMessageEndToken": "\n",

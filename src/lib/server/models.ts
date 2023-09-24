@@ -59,6 +59,8 @@ const modelsRaw = z
 			id: z.string().optional(),
 			/** Used to link to the model page, and for inference */
 			name: z.string().min(1),
+			/** If true, use this model for to summarize conversation or searchQuery */
+			defaultModel: z.boolean().default(false),
 			displayName: z.string().min(1).optional(),
 			description: z.string().min(1).optional(),
 			websiteUrl: z.string().url().optional(),
@@ -149,7 +151,15 @@ export const oldModels = OLD_MODELS
 export type BackendModel = Optional<(typeof models)[0], "preprompt">;
 export type Endpoint = z.infer<typeof endpoint>;
 
-export const defaultModel = models[0];
+export const getDefaultModel = () => {
+	const _defaultModel = models.find((model) => model.defaultModel === true);
+	if (!_defaultModel) {
+		throw new Error(
+			"Specify at least one default model in MODELS env variable with defaultModel: true"
+		);
+	}
+	return _defaultModel;
+};
 
 export const validateModel = (_models: BackendModel[]) => {
 	// Zod enum function requires 2 parameters
